@@ -14,6 +14,7 @@ import org.dom4j.io.SAXReader;
 
 import wfm.weixin.vo.EventMessage;
 import wfm.weixin.vo.LocationMessage;
+import wfm.weixin.vo.MassFinishMessage;
 import wfm.weixin.vo.Message;
 import wfm.weixin.vo.QrCodeMessage;
 import wfm.weixin.vo.TemplateMsgSendFinishMessage;
@@ -39,6 +40,7 @@ public class MessageUtil {
 	public static final String MESSAGE_VIDEO = "video";//视频消息
 	public static final String MESSAGE_SHORTVIDEO = "shortvideo";//小视频消息
 	public static final String MESSAGE_LINK = "link";//链接消息
+	public static final String MESSAGE_MASSNEWS = "mpnews";//群发图文消息
 	public static final String MESSAGE_LOCATION = "location";//地理位置消息
 	public static final String MESSAGE_EVENT = "event";//接收事件消息
 	//以下事件都是MsgType="event"时,会产生的子事件分类在消息的xml中会多产生一个标签<Event></Event>
@@ -50,6 +52,7 @@ public class MessageUtil {
 	public static final String MESSAGE_EVENT_SCANCODE_PUSH = "scancode_push";//自定义菜单扫码推事件消息
 	public static final String MESSAGE_EVENT_TEMPLATEMSGFINISH = "TEMPLATESENDJOBFINISH";//模版消息发送任务完成事件消息
 	public static final String MESSAGE_EVENT_SCAN = "SCAN";//用户已关注时的事件消息
+	public static final String MESSAGE_EVENT_MASSSENDFINISH = "MASSSENDJOBFINISH";//事件推送群发结果
 	
 	
 	/**
@@ -80,6 +83,8 @@ public class MessageUtil {
 				message = createTemplateMsgSendFinishMessageByMap(messageMap);
 			}else if(MessageUtil.MESSAGE_EVENT_SCAN.equals(messageMap.get("Event"))){
 				message = createQrCodeMessageByMap(messageMap);
+			}else if(MessageUtil.MESSAGE_EVENT_MASSSENDFINISH.equals(messageMap.get("Event"))){
+				message = createMassFinishMessageByMap(messageMap);
 			}else{
 				message = createEventMessageByMap(messageMap);
 			}
@@ -349,6 +354,22 @@ public class MessageUtil {
 		message.setEvent(messageMap.get("Event"));
 		message.setEventKey(messageMap.get("EventKey"));
 		message.setTicket(messageMap.get("Ticket"));
+		return message;
+	}
+	
+	private static MassFinishMessage createMassFinishMessageByMap(Map<String, String> messageMap){
+		MassFinishMessage message = new MassFinishMessage();
+		message.setCreateTime(messageMap.get("CreateTime"));
+		message.setFromUserName(messageMap.get("FromUserName"));
+		message.setToUserName(messageMap.get("ToUserName"));
+		message.setMsgType(MessageUtil.MESSAGE_EVENT);
+		message.setEvent(MessageUtil.MESSAGE_EVENT_MASSSENDFINISH);
+		message.setErrorCount(messageMap.get("ErrorCount"));
+		message.setFilterCount(messageMap.get("FilterCount"));
+		message.setMsgId(messageMap.get("MsgID"));
+		message.setSentCount(messageMap.get("SentCount"));
+		message.setStatus(messageMap.get("Status"));
+		message.setTotalCount(messageMap.get("TotalCount"));
 		return message;
 	}
 

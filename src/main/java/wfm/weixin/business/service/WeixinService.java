@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import com.alibaba.fastjson.JSON;
 
 import net.sf.json.JSONArray;
+import net.sf.json.JSONNull;
 import net.sf.json.JSONObject;
 import wfm.weixin.util.FileUtil;
 import wfm.weixin.util.HttpUtil;
@@ -29,6 +30,8 @@ import wfm.weixin.vo.EventMessage;
 import wfm.weixin.vo.Group;
 import wfm.weixin.vo.GroupInfo;
 import wfm.weixin.vo.LocationMessage;
+import wfm.weixin.vo.MassFinishMessage;
+import wfm.weixin.vo.MassNews;
 import wfm.weixin.vo.Menu;
 import wfm.weixin.vo.Message;
 import wfm.weixin.vo.QrCodeMessage;
@@ -108,6 +111,19 @@ public class WeixinService {
 	public static final String PAGE_ACCESSTOKEN_REFRESH = "https://api.weixin.qq.com/sns/oauth2/refresh_token?appid=APPID&grant_type=refresh_token&refresh_token=REFRESH_TOKEN";
 	//获得网页jsapi_ticket
 	public static final String GET_TICKET= "https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=ACCESS_TOKEN&type=jsapi";
+	//通过openid群发消息
+	public static final String SEND_MASS_OPENID = "https://api.weixin.qq.com/cgi-bin/message/mass/send?access_token=ACCESS_TOKEN";
+	//上传图片获取微信图片地址
+	public static final String GETURL_UPLOAD_IMAGE = "https://api.weixin.qq.com/cgi-bin/media/uploadimg?access_token=ACCESS_TOKEN";
+	//查询群发消息状态
+	public static final String GET_MASS_STATUS = "https://api.weixin.qq.com/cgi-bin/message/mass/get?access_token=ACCESS_TOKEN";
+	//上传图文消息素材
+	public static final String UPLOAD_NEWS= "https://api.weixin.qq.com/cgi-bin/media/uploadnews?access_token=ACCESS_TOKEN";
+	//通过分组群发消息
+	public static final String SEND_MASS_GROUP = "https://api.weixin.qq.com/cgi-bin/message/mass/sendall?access_token=ACCESS_TOKEN";
+	//预览群发消息
+	public static final String PREVIEW_MASS = "https://api.weixin.qq.com/cgi-bin/message/mass/preview?access_token=ACCESS_TOKEN";
+	
 	/**
 	 * 验证微信平台发送的接入参数是否一致
 	 * @param signature  微信加密签名，signature结合了开发者填写的token参数和请求中的timestamp参数、nonce参数。
@@ -215,6 +231,9 @@ public class WeixinService {
 				QrCodeMessage qrMsg = (QrCodeMessage) eventMsg;
 				String content = "发送状态:" +qrMsg.getEventKey() + ";" + qrMsg.getTicket();
 				replay = MessageUtil.generateXmlFormatTextMessage(eventMsg.getToUserName(), eventMsg.getFromUserName(), content);
+			}else if(MessageUtil.MESSAGE_EVENT_MASSSENDFINISH.equals(eventMsg.getEvent())){
+				MassFinishMessage massFinishMessage = (MassFinishMessage)eventMsg;
+				System.out.println(JSONObject.fromObject(massFinishMessage).toString());
 			}
 		}else if(MessageUtil.MESSAGE_LOCATION.equals(msg.getMsgType())){
 			//菜单按钮的location_select事件类型消息
@@ -244,6 +263,205 @@ public class WeixinService {
 	}
 	
 	/**
+	 * 获取微信群发消息状态
+	 * @param msgId  微信群发消息id
+	 * @return
+	 */
+	public String getMassMessageSendStatus(String msgId){
+		//获取access_token
+		AccessToken accessToken = AccessToken.getInstance();
+		String url = GET_MASS_STATUS.replace("ACCESS_TOKEN", accessToken.getAccess_token());
+		String json = "{\"msg_id\": \""+msgId+"\"}";
+		JSONObject resultJsonObject = HttpUtil.getJsonResponseByHttpPost(url, json);
+		System.out.println(resultJsonObject.toString());
+		if(null != resultJsonObject){
+			if(null!=resultJsonObject.get("msg_status")&&!(resultJsonObject.get("msg_status") instanceof JSONNull)){
+				return resultJsonObject.getString("msg_status");
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * 根据分组进行群发消息
+	 * @param isToAll  用于设定是否向全部用户发送，值为true或false，选择true该消息群发给所有用户，选择false可根据group_id发送给指定群组的用户
+	 * @param groupId  群发到的分组的group_id，参加用户管理中用户分组接口，若is_to_all值为true，可不填写group_id
+	 * @param msgType  消息类型
+	 * @param msgContent   消息内容:发送文本消息时为文本消息的内容,其他消息时为上传消息的素材media_id
+	 * @return   是否发送成功
+	 */
+	public boolean sendMassMessageByGroup(boolean isToAll,long groupId,String msgType,String msgContent){
+		//获取access_token
+		AccessToken accessToken = AccessToken.getInstance();
+		String url = SEND_MASS_GROUP.replace("ACCESS_TOKEN", accessToken.getAccess_token());
+		//组成群发信息
+		JSONObject message = new JSONObject();
+		JSONObject filter = new JSONObject();
+		filter.put("is_to_all", isToAll);
+		filter.put("group_id", groupId);
+		message.put("filter", filter);
+		if(MessageUtil.MESSAGE_TEXT.equals(msgType)){
+			JSONObject content = new JSONObject();
+			content.put("content", msgContent);
+			message.put("text", content);
+			message.put("msgtype", MessageUtil.MESSAGE_TEXT);
+		}else if(MessageUtil.MESSAGE_IMAGE.equals(msgType)){
+			JSONObject content = new JSONObject();
+			content.put("media_id", msgContent);
+			message.put("image", content);
+			message.put("msgtype", MessageUtil.MESSAGE_IMAGE);
+		}else if(MessageUtil.MESSAGE_MASSNEWS.equals(msgType)){
+			JSONObject content = new JSONObject();
+			content.put("media_id", msgContent);
+			message.put("mpnews", content);
+			message.put("msgtype", MessageUtil.MESSAGE_MASSNEWS);
+		}
+		System.out.println(message.toString());
+		JSONObject resultJsonObject = HttpUtil.getJsonResponseByHttpPost(url, message.toString());
+		System.out.println(resultJsonObject.toString());
+		if(null != resultJsonObject){
+			int result = resultJsonObject.getInt("errcode");
+			if(result != 0){
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	/**
+	 * 预览群发消息
+	 * @param openId  预览群发消息的微信openId
+	 * @param msgType   消息类型
+	 * @param msgContent   消息内容:发送文本消息时为文本消息的内容,其他消息时为上传消息的素材media_id
+	 * @return   是否预览成功
+	 */
+	public boolean previewMassMessage(String openId,String msgType,String msgContent){
+		//获取access_token
+		AccessToken accessToken = AccessToken.getInstance();
+		String url = PREVIEW_MASS.replace("ACCESS_TOKEN", accessToken.getAccess_token());
+		//组成群发信息
+		JSONObject message = new JSONObject();
+		message.put("touser", openId);
+		if(MessageUtil.MESSAGE_TEXT.equals(msgType)){
+			JSONObject content = new JSONObject();
+			content.put("content", msgContent);
+			message.put("text", content);
+			message.put("msgtype", MessageUtil.MESSAGE_TEXT);
+		}else if(MessageUtil.MESSAGE_IMAGE.equals(msgType)){
+			JSONObject content = new JSONObject();
+			content.put("media_id", msgContent);
+			message.put("image", content);
+			message.put("msgtype", MessageUtil.MESSAGE_IMAGE);
+		}else if(MessageUtil.MESSAGE_MASSNEWS.equals(msgType)){
+			JSONObject content = new JSONObject();
+			content.put("media_id", msgContent);
+			message.put("mpnews", content);
+			message.put("msgtype", MessageUtil.MESSAGE_MASSNEWS);
+		}
+		System.out.println(message.toString());
+		JSONObject resultJsonObject = HttpUtil.getJsonResponseByHttpPost(url, message.toString());
+		System.out.println(resultJsonObject.toString());
+		if(null != resultJsonObject){
+			int result = resultJsonObject.getInt("errcode");
+			if(result != 0){
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	/**
+	 * 根据OpenID列表群发消息
+	 * @param openIdList   微信openId列表
+	 * @param msgType   消息类型
+	 * @param msgContent   消息内容:发送文本消息时为文本消息的内容,其他消息时为上传消息的素材media_id
+	 * @return  是否发送
+	 */
+	public boolean sendMassMessageByOpenIDs(List<String> openIdList,String msgType,String msgContent){
+		//获取access_token
+		AccessToken accessToken = AccessToken.getInstance();
+		String url = SEND_MASS_OPENID.replace("ACCESS_TOKEN", accessToken.getAccess_token());
+		//组成群发信息
+		JSONObject message = new JSONObject();
+		JSONArray openIds = JSONArray.fromObject(openIdList);
+		message.put("touser", openIds);
+		if(MessageUtil.MESSAGE_TEXT.equals(msgType)){
+			JSONObject content = new JSONObject();
+			content.put("content", msgContent);
+			message.put("text", content);
+			message.put("msgtype", MessageUtil.MESSAGE_TEXT);
+		}else if(MessageUtil.MESSAGE_IMAGE.equals(msgType)){
+			JSONObject content = new JSONObject();
+			content.put("media_id", msgContent);
+			message.put("image", content);
+			message.put("msgtype", MessageUtil.MESSAGE_IMAGE);
+		}else if(MessageUtil.MESSAGE_MASSNEWS.equals(msgType)){
+			JSONObject content = new JSONObject();
+			content.put("media_id", msgContent);
+			message.put("mpnews", content);
+			message.put("msgtype", MessageUtil.MESSAGE_MASSNEWS);
+		}
+		System.out.println(message.toString());
+		JSONObject resultJsonObject = HttpUtil.getJsonResponseByHttpPost(url, message.toString());
+		System.out.println(resultJsonObject.toString());
+		if(null != resultJsonObject){
+			int result = resultJsonObject.getInt("errcode");
+			if(result != 0){
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	/**
+	 * 上传微信图文消息并获取对应的media_id
+	 * @param massNewsList  群发图文消息列表
+	 * @return  图文消息的media_id
+	 */
+	public String uploadNews(List<MassNews> massNewsList){
+		//获取access token
+		AccessToken accessToken = AccessToken.getInstance();
+		String url = UPLOAD_NEWS.replace("ACCESS_TOKEN", accessToken.getAccess_token());
+		//组装图文消息列表
+		JSONObject jsonObject = new JSONObject();
+		JSONArray articles = JSONArray.fromObject(massNewsList);
+		jsonObject.put("articles", articles);
+		JSONObject resultJsonObject = HttpUtil.getJsonResponseByHttpPost(url, jsonObject.toString());
+		System.out.println(resultJsonObject.toString());
+		if(null != resultJsonObject){
+			if(null!=resultJsonObject.get("media_id")&&!(resultJsonObject.get("media_id") instanceof JSONNull)){
+				return resultJsonObject.getString("media_id");
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * 上传图片并返回图片的url
+	 * @param imagePath  图片路径
+	 * @return   上传图片的微信url
+	 * @throws FileNotFoundException
+	 */
+	public String uploadImage(String imagePath)throws FileNotFoundException{
+		//获取access token
+		AccessToken accessToken = AccessToken.getInstance();
+		//设置上传url和参数
+		String url = GETURL_UPLOAD_IMAGE.replace("ACCESS_TOKEN", accessToken.getAccess_token());
+		//通过http请求上传素材
+		String result = HttpUtil.uploadFileByHttp(imagePath, url);	
+		String imageUrl = "";
+		//响应结果转换成json格式
+		if(null!=result&&!"".equals(result)){
+			JSONObject jsonObject = JSONObject.fromObject(result);
+			System.out.println("result:"+result);
+			if(null!=jsonObject.get("url")&&!(jsonObject.get("url") instanceof JSONNull)){
+				imageUrl = jsonObject.getString("url");
+			}
+		}
+		return imageUrl;
+	}
+	
+	/**
 	 * 上传微信临时素材
 	 * @param filePath  素材文件路径
 	 * @param type  素材类型(图片（image）: 2M，支持PNG\JPEG\JPG\GIF格式、 语音（voice）：2M，播放长度不超过60s，支持AMR\MP3格式、视频（video）：10MB，支持MP4格式、缩略图（thumb）：64KB，支持JPG格式)
@@ -252,8 +470,22 @@ public class WeixinService {
 	public String uploadFile(String filePath,String type)throws FileNotFoundException{
 		//获取access token
 		AccessToken accessToken = AccessToken.getInstance();
+		//设置上传url和参数
+		String url = UPLOAD_URL.replace("ACCESS_TOKEN", accessToken.getAccess_token()).replace("TYPE", type);
 		//通过http请求上传素材
-		return HttpUtil.uploadFileByHttp(filePath, accessToken.getAccess_token(), type);	
+		String result = HttpUtil.uploadFileByHttp(filePath, url);	
+		String mediaId = "";
+		//响应结果转换成json格式
+		if(null!=result&&!"".equals(result)){
+			JSONObject jsonObject = JSONObject.fromObject(result);
+			System.out.println("result:"+result);
+			String mediaIdName = "media_id";
+			if(!"image".equals(type)){
+				mediaIdName = type + "_" + mediaIdName;
+			}
+			mediaId = jsonObject.getString(mediaIdName);
+		}
+		return mediaId;
 	}
 	
 	/**

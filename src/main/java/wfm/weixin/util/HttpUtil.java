@@ -25,7 +25,6 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 
 import net.sf.json.JSONObject;
-import wfm.weixin.business.service.WeixinService;
 
 /**
  * http请求的工具类
@@ -168,21 +167,18 @@ public class HttpUtil {
 	}
 	
 	/**
-	 * 用http的方式上传微信素材,返回素材唯一标识
+	 * 用http的方式上传文件
 	 * @param filePath   素材文件路径
-	 * @param accessToken   微信接入的access token
-	 * @param type   素材类型(图片（image）: 2M，支持PNG\JPEG\JPG\GIF格式、 语音（voice）：2M，播放长度不超过60s，支持AMR\MP3格式、视频（video）：10MB，支持MP4格式、缩略图（thumb）：64KB，支持JPG格式)
+	 * @param url   上传地址
 	 * @return  媒体文件上传后，获取的唯一标识
 	 * @throws FileNotFoundException
 	 */
-	public static String uploadFileByHttp(String filePath,String accessToken,String type)throws FileNotFoundException{
+	public static String uploadFileByHttp(String filePath,String url)throws FileNotFoundException{
 		
 		File file = new File(filePath);
 		if(!file.exists()||!file.isFile()){
 			throw new FileNotFoundException("文件不存在");
 		}
-		//设置上传url和参数
-		String url = WeixinService.UPLOAD_URL.replace("ACCESS_TOKEN", accessToken).replace("TYPE", type);
 		//设置http链接
 		URL urlObj = null;
 		OutputStream out = null;
@@ -266,19 +262,7 @@ public class HttpUtil {
 			}
 		}
 		
-		//响应结果转换成json格式
-		if(null!=result&&!"".equals(result)){
-			JSONObject jsonObject = JSONObject.fromObject(result);
-			System.out.println("result:"+result);
-			String mediaIdName = "media_id";
-			if(!"image".equals(type)){
-				mediaIdName = type + "_" + mediaIdName;
-			}
-			String mediaId = jsonObject.getString(mediaIdName);
-			return mediaId;
-		}
-		
-		return null;
+		return result;
 	}
 
 }
