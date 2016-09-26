@@ -55,6 +55,8 @@ import wfm.weixin.vo.response.News;
  */
 @Service
 public class WeixinService {
+	
+	private static final String DOMAIN_NAME = "http://4534ca38.ittun.com/";
 	// 微信Token(令牌)
 	private static final String token = "mittermeyer";
 	// 微信第三方用户唯一凭证
@@ -175,7 +177,7 @@ public class WeixinService {
 				News news = new News();
 				news.setTitle("利物浦中文官网");
 				news.setDescription("利物浦足球俱乐部中文官方网站");
-				news.setPicUrl("http://5bf7ce9.ittun.com/weixin/static/images/lfc_crest.png");
+				news.setPicUrl(DOMAIN_NAME+"/weixin/static/images/lfc_crest.png");
 				news.setUrl("cn.liverpoolfc.com");
 				replayNews.add(news);
 				replay = MessageUtil.generateXmlFormatNewsMessage(textMsg.getToUserName(),textMsg.getFromUserName(), replayNews);
@@ -187,8 +189,8 @@ public class WeixinService {
 				Music music = new Music();
 				music.setTitle("利物浦队歌");
 				music.setDescription("你永远不会独行");
-				music.setMusicUrl("http://5bf7ce9.ittun.com/weixin/static/music/You_never_walk_alone.mp3");
-				music.sethQMusicUrl("http://5bf7ce9.ittun.com/weixin/static/music/You_never_walk_alone_High.mp3");
+				music.setMusicUrl(DOMAIN_NAME+"weixin/static/music/You_never_walk_alone.mp3");
+				music.sethQMusicUrl(DOMAIN_NAME+"weixin/static/music/You_never_walk_alone_High.mp3");
 				//缩略图需提前上传素材获得mediaid
 				music.setThumbMediaId("DpotLtIgBuWwCI0Ra6pfKDmReuAZ2YCK-4oUYDHusuDISxKzIHN1psJ5RY_S0GDv");
 				replay = MessageUtil.generateXmlFormatMusicMessage(textMsg.getToUserName(), textMsg.getFromUserName(), music);
