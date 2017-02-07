@@ -297,4 +297,9 @@ public class WeixinTest {
 		boolean flag = weixinService.previewMassMessage("oGUsUwCLHXFgODBNzHhRoA_0E3w8", "mpnews", "JvJpMwCsWr2JH1l9TpWEUwBqn3cX7mmEFIXkvKfmYQn8OUketHTV5uPrm1HHFPGT");
 		assertTrue(flag);
 	}
+	
+	@Test
+	public void testDownloadMedia(){
+		weixinService.downloadMedia("YAq4S8CInf3U3Oxg3MZFTcHT-haJcC5YHWlfeu33czAwp2AG2KUaVZdOTI_xpXDU","/Users/mittermeyer/Documents/");
+	}
 }

@@ -56,7 +56,7 @@ import wfm.weixin.vo.response.News;
 @Service
 public class WeixinService {
 	
-	private static final String DOMAIN_NAME = "http://4534ca38.ittun.com/";
+	private static final String DOMAIN_NAME = "http://773010d.ittun.com";
 	// 微信Token(令牌)
 	private static final String token = "mittermeyer";
 	// 微信第三方用户唯一凭证
@@ -125,6 +125,8 @@ public class WeixinService {
 	public static final String SEND_MASS_GROUP = "https://api.weixin.qq.com/cgi-bin/message/mass/sendall?access_token=ACCESS_TOKEN";
 	//预览群发消息
 	public static final String PREVIEW_MASS = "https://api.weixin.qq.com/cgi-bin/message/mass/preview?access_token=ACCESS_TOKEN";
+	
+	public static final String DOWNLOAD_MEDIA = "http://file.api.weixin.qq.com/cgi-bin/media/get?access_token=ACCESS_TOKEN&media_id=MEDIA_ID";
 	
 	/**
 	 * 验证微信平台发送的接入参数是否一致
@@ -846,7 +848,6 @@ public class WeixinService {
 	
 	public boolean getQrCode(String ticket,String filePath){
 		String url = null;
-		InputStream in = null;
 		try {
 			url = GET_QRCODE.replace("TICKET", URLEncoder.encode(ticket,"UTF-8"));
 			byte[] data = HttpUtil.getResponseByHttpGet(url);
@@ -854,15 +855,6 @@ public class WeixinService {
 			return true;
 		} catch (IOException e) {
 			e.printStackTrace();
-		} finally {
-			if(in!=null){
-				try {
-					in.close();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
 		}
 		return false;
 	}
@@ -950,6 +942,18 @@ public class WeixinService {
 			}
 		}
 		return userInfo;
+	}
+	
+	/**
+	 * 下载微信服务端的多媒体文件
+	 * @param serverId   多媒体文件在微信服务端的Id
+	 * @param filePath  存储下载文件的路径
+	 * @return
+	 */
+	public boolean downloadMedia(String serverId,String filePath){
+		AccessToken accessToken = AccessToken.getInstance();
+		String url = DOWNLOAD_MEDIA.replace("ACCESS_TOKEN", accessToken.getAccess_token()).replace("MEDIA_ID", serverId);
+		return HttpUtil.downloadFileFromUrl(url, filePath);
 	}
 	
 	/**

@@ -6,21 +6,24 @@ import java.io.IOException;
 
 public class FileUtil {
 
-	public static void generateFile(String filePath, byte[] data) {
+	public static void generateFile(String filePath, byte[] data)throws IOException {
 		FileOutputStream fos = null;
-		try {
-			File file = new File(filePath);
-			fos = new FileOutputStream(file);
-			fos.write(data);
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			if (null != fos) {
-				try {
-					fos.close();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+		if(null!=data&&data.length>0){
+			try {
+				File file = new File(filePath);
+				fos = new FileOutputStream(file);
+				fos.write(data);
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw e;
+			} finally {
+				if (null != fos) {
+					try {
+						fos.close();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 				}
 			}
 		}

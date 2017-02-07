@@ -1,5 +1,6 @@
 package wfm.weixin.controller;
 
+import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.util.UUID;
 
@@ -122,6 +123,53 @@ public class WeixinPageController {
 		signature = DigestUtils.sha1Hex(signature);
 		request.setAttribute("signature", signature);
 		return "userInfoView";
+	}
+	
+	/**
+	 * 微信js接口测试页面
+	 * @param request
+	 * @param reponse
+	 * @return
+	 */
+	@RequestMapping(value = "/jsDemoPage")
+	public String jsDemoPage(HttpServletRequest request,HttpServletResponse reponse){
+		//获取页面调用微信js接口的授权验证信息,参见http://mp.weixin.qq.com/wiki/7/aaa137b55fb2e0456bf8dd9148dd613f.html#.E8.B0.83.E8.B5.B7.E5.BE.AE.E4.BF.A1.E6.89.AB.E4.B8.80.E6.89.AB.E6.8E.A5.E5.8F.A3
+		long timestamp = System.currentTimeMillis();
+		request.setAttribute("timestamp", timestamp);
+		String noncestr = UUID.randomUUID().toString();
+		request.setAttribute("noncestr", noncestr);
+		StringBuffer currentUrlBuffer = request.getRequestURL();
+        String queryString =request.getQueryString();
+        if(StringUtils.isNotBlank(queryString)){
+        	currentUrlBuffer.append("?").append(queryString);
+        }
+		System.out.println("currentUrlBuffer:"+currentUrlBuffer.toString());
+		/* JS-SDK使用权限签名算法
+		 * 1、获取access_token
+		 * 2、用第一步拿到的access_token 采用http GET方式请求获得jsapi_ticket
+		 * 3、签名生成规则如下：参与签名的字段包括noncestr（随机字符串）, 有效的jsapi_ticket, timestamp（时间戳）, url（当前网页的URL，不包含#及其后面部分） 。
+		 * 对所有待签名参数按照字段名的ASCII 码从小到大排序（字典序）后，使用URL键值对的格式（即key1=value1&key2=value2…）拼接成字符串string1。这里需要注意的是所有参数名均为小写字符。
+		 * 对string1作sha1加密，字段名和字段值都采用原始值，不进行URL 转义。
+		 */
+		String signature = "jsapi_ticket="+JsApiTicket.getInstance().getTicket()+"&noncestr="+noncestr+"&timestamp="+timestamp+"&url="+currentUrlBuffer.toString();
+		signature = DigestUtils.sha1Hex(signature);
+		request.setAttribute("signature", signature);
+		return "jsDemo";
+	}
+	
+	/**
+	 * 下载微信上的多媒体文件
+	 * @param request
+	 * @param response
+	 * @return
+	 */
+	@RequestMapping(value="/downloadMedia")
+	public String downloadMedia(HttpServletRequest request,HttpServletResponse response){
+		String serverId = request.getParameter("serverId");
+		String staticFilePath = request.getSession().getServletContext().getRealPath("static");
+		staticFilePath = staticFilePath + File.separator + "music" + File.separator ;
+		weixinService.downloadMedia(serverId,staticFilePath);
+		return null;
 	}
 
 	@RequestMapping(value = "/testLink")
